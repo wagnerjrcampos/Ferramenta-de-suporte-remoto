@@ -1,4 +1,5 @@
 ## Título
+
 Função PowerShell: checar e habilitar WinRM remotamente via Entra ID/Graph
 
 ## Contexto
