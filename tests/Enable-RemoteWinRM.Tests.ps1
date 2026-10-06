@@ -68,6 +68,23 @@ Describe 'Enable-RemoteWinRM' {
         }
     }
 
+    Context 'Verificação falha após habilitar' {
+        BeforeAll {
+            Mock Test-Connection { $true } -ModuleName RemoteSupportTools
+            Mock Test-WSMan { throw 'WinRM não responde' } -ModuleName RemoteSupportTools
+            Mock Invoke-CimMethod { [PSCustomObject]@{ ReturnValue = 0 } } -ModuleName RemoteSupportTools
+            Mock Start-Sleep {} -ModuleName RemoteSupportTools
+        }
+
+        It 'Retorna Status Failed após esgotar as tentativas' {
+            $result = Enable-RemoteWinRM -ComputerName 'PC-VERIF-FALHA'
+
+            $result.Status | Should -Be 'Failed'
+            $result.Detail | Should -Match 'tentativas'
+            Should -Invoke Test-WSMan -Times 6 -ModuleName RemoteSupportTools
+        }
+    }
+
     Context 'Falha na habilitação' {
         BeforeAll {
             Mock Test-Connection { $true } -ModuleName RemoteSupportTools

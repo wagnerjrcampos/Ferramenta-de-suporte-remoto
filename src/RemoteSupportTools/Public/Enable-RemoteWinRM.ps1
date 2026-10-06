@@ -32,7 +32,7 @@
         Habilita o WinRM em múltiplas máquinas via pipeline, com log detalhado.
 
     .OUTPUTS
-        [PSCustomObject] com ComputerName, Status, Detail e EnabledAt
+        [PSCustomObject] com ComputerName, Status, Detail e CheckedAt
     #>
     [CmdletBinding()]
     [OutputType([PSCustomObject])]
@@ -59,7 +59,7 @@
                 ComputerName = $Computer
                 Status       = 'Unknown'
                 Detail       = ''
-                EnabledAt    = Get-Date
+                CheckedAt    = Get-Date
             }
 
             # Etapa 1 — falha rápida se a máquina nem responde à rede.
@@ -118,14 +118,32 @@
                     throw "Win32_Process Create retornou código $($CimResult.ReturnValue)."
                 }
 
-                # Etapa 4 — confirma que o WinRM passou a responder.
-                Write-Verbose "[$Computer] Aguardando e confirmando WinRM..."
-                Start-Sleep -Seconds 5
+                # Etapa 4 — confirma que o WinRM passou a responder (retry: pode levar
+                # alguns segundos para o serviço subir em máquinas lentas).
                 $VerifyParams = @{ ComputerName = $Computer; ErrorAction = 'Stop' }
                 if ($PSBoundParameters.ContainsKey('Credential')) {
                     $VerifyParams['Credential'] = $Credential
                 }
-                $null = Test-WSMan @VerifyParams
+
+                $Confirmed = $false
+                $LastError = ''
+                for ($Attempt = 1; $Attempt -le 5; $Attempt++) {
+                    Write-Verbose "[$Computer] Aguardando e confirmando WinRM (tentativa $Attempt/5)..."
+                    Start-Sleep -Seconds 5
+                    try {
+                        $null = Test-WSMan @VerifyParams
+                        $Confirmed = $true
+                        break
+                    }
+                    catch {
+                        $LastError = $_.Exception.Message
+                        Write-Verbose "[$Computer] Tentativa $Attempt falhou: $LastError"
+                    }
+                }
+
+                if (-not $Confirmed) {
+                    throw "WinRM não respondeu após 5 tentativas: $LastError"
+                }
 
                 $Result.Status = 'Enabled'
                 $Result.Detail = 'WinRM habilitado e confirmado com sucesso.'
