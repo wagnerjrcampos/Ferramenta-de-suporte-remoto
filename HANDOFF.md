@@ -168,7 +168,7 @@ Concluído
 * `powershell -NoProfile -ExecutionPolicy Bypass -Command "Invoke-Pester .\tests"` — branch `feature/enable-remote-winrm`.
 
 **Resultado:**
-Tests Passed: 13, Failed: 0.
+Tests Passed: 14, Failed: 0.
 
 **Limitações:**
 Validado apenas localmente com mocks, nunca contra máquina real. **CI do GitHub Actions não validou o merge** — workflow ainda não commitado.
@@ -246,7 +246,8 @@ Nenhuma até o momento.
 
 ### O que foi concluído
 * `Public/Enable-RemoteWinRM.ps1` criada — validação de entrada, `Test-Connection` → checagem de WinRM → habilitação via `Invoke-CimMethod` em `Win32_Process` → confirmação com `Test-WSMan`. Idempotente (`AlreadyEnabled`), saída PSCustomObject com Status/Detail.
-* `tests/Enable-RemoteWinRM.Tests.ps1` com 7 testes (offline, já habilitado, sucesso, falha, pipeline, validação).
+* `tests/Enable-RemoteWinRM.Tests.ps1` com 8 testes (offline, já habilitado, sucesso, verificação falha após habilitar, falha na habilitação, pipeline, validação).
+* Após review do Revisor: retry de 5x/5s na confirmação do WinRM, campo renomeado para `CheckedAt` (consistência com Test-WinRMStatus).
 * `Enable-RemoteWinRM` registrada em `FunctionsToExport` no `.psd1`.
 * Todos os arquivos `.ps1`/`.psm1`/`.psd1` mantidos com BOM UTF-8.
 
