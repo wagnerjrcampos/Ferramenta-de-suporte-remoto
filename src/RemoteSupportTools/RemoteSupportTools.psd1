@@ -5,5 +5,5 @@
     Author             = 'Junior'
     Description        = 'Ferramentas de suporte remoto via WinRM para ambiente Entra ID joined'
     PowerShellVersion  = '5.1'
-    FunctionsToExport  = @('Test-WinRMStatus')
+    FunctionsToExport  = @('Test-WinRMStatus', 'Enable-RemoteWinRM')
 }
