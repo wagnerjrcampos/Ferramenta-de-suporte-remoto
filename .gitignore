@@ -1,0 +1,20 @@
+# PowerShell / projeto
+*.tmp
+*.log
+*.bak
+~$*
+
+# Saídas de testes e cobertura
+TestResults/
+*.TestResults.xml
+*.coverage.xml
+coverage/
+
+# Saídas de build/módulos gerados
+out/
+dist/
+build/
+
+# Ferramentas locais / canvas
+.maestri/
+.playwright-mcp/
