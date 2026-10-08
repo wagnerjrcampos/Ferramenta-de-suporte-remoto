@@ -14,75 +14,67 @@
 
 **Objetivo:** Módulo PowerShell para diagnosticar e habilitar acesso remoto (WinRM/PSRemoting) em máquinas Entra ID joined, como alternativa a chamados de AnyDesk que travam no prompt de UAC ou reportam "não conectado" — ambiente sem RMM (Intune/SCCM).
 
-**Status:** Validação local da primeira função concluída (6/6 testes passando)
+**Status:** Em desenvolvimento — `Enable-RemoteWinRM` implementada e validada localmente (14/14 Pester), PR #5 aberto com review aplicado, CI commitado (ativa após merge na `main`)
 
-**Última atualização:** 01/10/2026
+**Última atualização:** 07/10/2026
 
 ---
 
 ## 2. Resumo Executivo
 
-- Implementação inicial da função `Test-WinRMStatus` (código + testes Pester) concluída.
-- Estrutura do módulo (`.psd1`/`.psm1`) e pastas criadas.
-- **Bloqueio anterior RESOLVIDO:** a causa real era a ExecutionPolicy do PowerShell recusando carregar os arquivos não assinados (o erro de sintaxe reportado era uma manifestação confusa disso, não um arquivo corrompido). Com `powershell -ExecutionPolicy Bypass`, `Invoke-Pester .\tests` roda **6/6 passando**.
-- O arquivo `Public/Test-WinRMStatus.ps1` está íntegro (4072 caracteres, termina corretamente) — a anotação de "4024 caracteres" no handoff anterior estava errada.
-- Nenhuma execução foi feita contra máquina real — a função é somente leitura.
-- Próximo passo: confirmar `.gitignore` e `ci.yml`, implementar `Enable-RemoteWinRM` e abrir o PR (Closes #1).
+- PR mesclado em `main`: `Test-WinRMStatus` implementada, testada (6/6 Pester) e integrada.
+- Issue #1 fechada automaticamente pelo merge (`Closes #1`).
+- `Enable-RemoteWinRM` implementada em branch `feature/enable-remote-winrm` (Issue #4), testes passando 13/13 localmente (7 novos + 6 existentes).
+- Decisão técnica: habilitação remota via `Invoke-CimMethod` em `Win32_Process` (roda `Enable-PSRemoting -Force; Enable-WinRM -Force`), seguida de verificação com `Test-WSMan`. Idempotente: se `Test-WSMan` já responder, retorna `AlreadyEnabled` sem alterar nada.
+- **Pendência identificada (resolvida em 07/10/2026):** `.github/workflows/ci.yml` e `.gitignore` foram commitados na branch `feature/enable-remote-winrm` (commit c734d74). CI passa a rodar em PRs somente após essa branch ser mesclada na `main`.
+- Nenhuma execução foi feita contra máquina real — validação apenas com mocks.
+- Próximo passo: mesclar PR #5 na `main` para ativar o workflow de CI; após o merge, PRs futuros terão validação automática.
 
 ---
 
 ## 3. Contexto Atual de Trabalho
 
 ### Tarefa atual
-Concluir a Issue #1: confirmar arquivos de infraestrutura (`.gitignore`, `ci.yml`), implementar `Enable-RemoteWinRM` e abrir o Pull Request.
+Abrir PR com `Enable-RemoteWinRM` (Issue #4) e, em paralelo, resolver pendência de CI.
 
 ### Objetivo
-`Invoke-Pester .\tests` passando 6/6 localmente. — ✅ **ALCANÇADO em 01/10/2026**
+Ter o GitHub Actions rodando nos PRs e concluir a habilitação remota de WinRM.
 
 ### Estado
-Validação local CONCLUÍDA (6/6)
+`Enable-RemoteWinRM` implementada e testada localmente (14/14) — PR #5 aberto com review aplicado. CI commitado na branch; ativa após merge na `main`.
 
 ### Escopo
-`src/RemoteSupportTools/Public/Test-WinRMStatus.ps1`, `tests/Test-WinRMStatus.Tests.ps1`
+`src/RemoteSupportTools/Public/Enable-RemoteWinRM.ps1`, `tests/Enable-RemoteWinRM.Tests.ps1`, `RemoteSupportTools.psd1`, `HANDOFF.md`
 
 ### Arquivos ou áreas principais
-- `src/RemoteSupportTools/Public/Test-WinRMStatus.ps1`
-- `tests/Test-WinRMStatus.Tests.ps1`
-- `src/RemoteSupportTools/RemoteSupportTools.psm1`
-- `src/RemoteSupportTools/RemoteSupportTools.psd1`
+- `.github/workflows/ci.yml` (commitada em 07/10/2026)
+- `.gitignore` (commitado em 07/10/2026)
+- `src/RemoteSupportTools/Public/Enable-RemoteWinRM.ps1` (criada em 06/10/2026)
 
 ### Onde continuar
 
 **Ponto principal:**
 
-`src/RemoteSupportTools/Public/` (próxima função: `Enable-RemoteWinRM`)
+Raiz do repositório — commitar arquivos de configuração pendentes
 
 **Próxima ação exata:**
 
-Confirmar se `.gitignore` e `.github/workflows/ci.yml` existem no repositório (`git status` / `git ls-files`), depois seguir para `Enable-RemoteWinRM`.
-
-**Nota importante sobre execução:**
-
-Rodar os testes com bypass da ExecutionPolicy, senão o Pester falha ao carregar os arquivos não assinados:
-```bash
-powershell -NoProfile -ExecutionPolicy Bypass -Command "Invoke-Pester .\tests"
-```
-(Alternativa para o desenvolvedor: `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned`)
+Confirmar com `git status`/`dir .github` se `ci.yml` e `.gitignore` existem no repo local; se não existirem, adicioná-los, commitar na `main` (ou branch própria) e confirmar que o Actions passa a rodar em PRs futuros.
 
 ---
 
 ## 4. Stack e Tecnologias
 
-- PowerShell 5.1+
+- PowerShell 5.1+ (arquivos `.ps1`/`.psm1`/`.psd1` devem usar BOM UTF-8 — ver seção 9)
 - Pester 6.2.0 (testes)
-- GitHub Actions (CI — arquivo `ci.yml` fornecido, **não confirmado se já commitado**)
+- GitHub Actions (CI — **ainda não commitado/ativo**)
 - Microsoft Graph (planejado para `Enable-RemoteWinRM`, ainda não implementado)
 
 ---
 
 ## 5. Arquitetura
 
-Módulo PowerShell simples: `RemoteSupportTools.psm1` carrega automaticamente todas as funções de `Public/*.ps1` e as exporta. Sem uso de jobs/threads assíncronos — decisão consciente para manter a função simples e testável com Pester (ver seção 9).
+Módulo PowerShell simples: `RemoteSupportTools.psm1` carrega automaticamente todas as funções de `Public/*.ps1` e as exporta. Sem uso de jobs/threads assíncronos — decisão consciente para manter as funções simples e testáveis com Pester (ver seção 9).
 
 ---
 
@@ -98,21 +90,22 @@ tests/
 └── Test-WinRMStatus.Tests.ps1
 ```
 
-`.gitignore` e `.github/workflows/ci.yml` foram fornecidos em conversa anterior — **não confirmado se já estão no repositório.**
+`.gitignore` e `.github/workflows/ci.yml` confirmados e commitados no repositório (branch `feature/enable-remote-winrm`, 07/10/2026).
 
 ---
 
 ## 7. Funcionalidades e Estado
 
 ### Concluídas
-* [x] `Test-WinRMStatus` — validado localmente com 6/6 testes Pester passando (01/10/2026).
+* [x] `Test-WinRMStatus` — implementada, testada (6/6) e mesclada em `main`.
+
+* [x] `Enable-RemoteWinRM` — implementada, testada (7/7 novos; 13/13 total) em branch `feature/enable-remote-winrm` (Issue #4).
 
 ### Em andamento
-* [ ] `Enable-RemoteWinRM` (próxima função da Issue #1).
+* PR da `Enable-RemoteWinRM` (a abrir).
 
 ### Pendentes
-* [ ] Confirmar `.gitignore` e `ci.yml` commitados.
-* [ ] Abrir primeiro Pull Request (Closes #1).
+* [x] Commitar `.gitignore` e `.github/workflows/ci.yml` (feito em 07/10/2026, commit c734d74, na branch `feature/enable-remote-winrm`).
 
 ### Melhorias futuras
 * [ ] Fase 2: empacotar como Azure Automation Runbook/Function via Terraform.
@@ -121,42 +114,32 @@ tests/
 
 ## 8. Alterações Relevantes Recentes
 
-### 01/10/2026 — Bloqueio de validação resolvido (6/6 testes)
+### 07/10/2026 — CI commitado; review do PR #5 aplicado
 
 **Alteração:**
-Nenhuma mudança de código. Diagnóstico do bloqueio reportado no handoff anterior e validação concluída.
+Revisão do Revisor aplicada no PR #5 (retry de 5x/5s no `Test-WSMan` pós-habilitação, `EnabledAt`→`CheckedAt`, teste dedicado para falha na verificação após enable). `.gitignore` e `.github/workflows/ci.yml` commitados na branch `feature/enable-remote-winrm`.
 
-**Motivo:**
-O handoff de 30/09/2026 relatava erro de sintaxe ("'}' de fechamento ausente") ao importar `Test-WinRMStatus.ps1`. Verificação real mostrou o arquivo íntegro (4072 caracteres, termina corretamente). A causa verdadeira era a ExecutionPolicy do PowerShell recusando carregar os arquivos de teste não assinados.
-
-**Impacto:**
-`Invoke-Pester .\tests` passa 6/6 com `powershell -ExecutionPolicy Bypass`. Sem impacto em produção.
-
-**Arquivos principais:**
-* `tests/Test-WinRMStatus.Tests.ps1` (afetado pela política de execução)
-
-**Status:**
-Validação local CONCLUÍDA
+**Status:** Concluído localmente — CI ativa somente após merge na `main`.
 
 ---
 
-### 30/09/2026 — Estrutura inicial do módulo
+### 30/09/2026 — PR #1 mesclado
 
 **Alteração:**
-Criados `RemoteSupportTools.psd1`, `RemoteSupportTools.psm1`, `Public/Test-WinRMStatus.ps1` e `tests/Test-WinRMStatus.Tests.ps1`.
+`Test-WinRMStatus` mesclada em `main` via Pull Request (`Closes #1`).
 
 **Motivo:**
-Implementar a Issue #1 (checar/habilitar WinRM remotamente via Entra ID/Graph).
+Conclusão da primeira entrega da Issue #1.
 
 **Impacto:**
-Nenhum em produção — apenas ambiente local de desenvolvimento.
+Módulo agora tem uma função funcional e testada em `main`. Nenhum check de CI validou o merge (workflow não commitado ainda).
 
 **Arquivos principais:**
 * `src/RemoteSupportTools/Public/Test-WinRMStatus.ps1`
 * `tests/Test-WinRMStatus.Tests.ps1`
 
 **Status:**
-Bloqueado (validação local)
+Concluído
 
 ---
 
@@ -164,20 +147,23 @@ Bloqueado (validação local)
 
 ### Não usar Start-Job para controlar timeout do Test-WSMan
 
-**Contexto:**
-Primeira ideia cogitava usar `Start-Job`/`Wait-Job` para impor um timeout customizado no teste de WinRM.
+**Contexto:** Primeira ideia cogitava `Start-Job`/`Wait-Job` para impor timeout customizado no teste de WinRM.
 
-**Alternativas consideradas:**
-* `Start-Job` + `Wait-Job -Timeout`
+**Decisão:** Chamar `Test-WSMan` diretamente, sem job.
 
-**Decisão:**
-Chamar `Test-WSMan` diretamente, sem job.
+**Motivo:** `Start-Job` roda em processo separado e não herda mocks do Pester, além de adicionar complexidade desnecessária.
 
-**Motivo:**
-`Start-Job` roda em processo separado e não herda mocks do Pester (dificulta testar), além de adicionar complexidade desnecessária para uma checagem simples.
+**Impacto:** Função simples e 100% testável; sem timeout customizado (usa o padrão do WinRM).
 
-**Impacto:**
-Função mais simples e 100% testável com mocks; não há timeout customizado — usa o timeout padrão do WinRM.
+### Usar BOM UTF-8 em todos os arquivos PowerShell
+
+**Contexto:** Arquivos `.ps1` sem BOM causavam mojibake e erro de parsing no Windows PowerShell 5.1.
+
+**Decisão:** Salvar todos os arquivos `.ps1`/`.psm1`/`.psd1` com BOM UTF-8.
+
+**Motivo:** Garante leitura correta em PowerShell 5.1 sem abrir mão de comentários em português.
+
+**Impacto:** Todo novo arquivo PowerShell do projeto deve seguir essa convenção.
 
 ---
 
@@ -185,48 +171,40 @@ Função mais simples e 100% testável com mocks; não há timeout customizado �
 
 ### Última validação
 
-**Status:** ✅ APROVADO — 6/6 testes passando
-
-**Data:** 01/10/2026
+**Status:** VALIDADO (local)
 
 **Validações executadas:**
-* `(Get-Item ...Test-WinRMStatus.ps1).Length` → 4072 (íntegro; a nota de 4024 no handoff anterior estava errada).
-* `Get-Content ... -Tail 5` → termina em `$Result` + 3 chaves, como esperado.
-* `powershell -NoProfile -ExecutionPolicy Bypass -Command "Invoke-Pester .\tests"`.
+* `powershell -NoProfile -ExecutionPolicy Bypass -Command "Invoke-Pester .\tests"` — branch `feature/enable-remote-winrm`.
 
 **Resultado:**
-```
-Tests Passed: 6, Failed: 0, Skipped: 0, Inconclusive: 0, NotRun: 0
-```
+Tests Passed: 14, Failed: 0.
 
 **Limitações:**
-* Sempre rodar com `-ExecutionPolicy Bypass` (ou policy `RemoteSigned` no CurrentUser) — sem isso o Pester falha ao carregar os arquivos não assinados.
-* Nenhuma execução contra máquina real ainda (função é somente leitura).
+Validado apenas localmente com mocks, nunca contra máquina real. CI commitado em 07/10/2026, mas só passa a validar PRs após o merge da `feature/enable-remote-winrm` na `main`.
 
 ---
 
 ## 11. Problemas, Riscos e Bloqueios
 
 ### Problemas conhecidos
-* ~~`Public/Test-WinRMStatus.ps1` local aparenta estar incompleto/corrompido~~ — RESOLVIDO: o arquivo está íntegro; o problema era a ExecutionPolicy.
+* PR #1 foi mesclado sem nenhum check de CI — `.github/workflows/ci.yml` não está no repositório ainda, então não há validação automática em `main` nem em PRs. **Resolvido em 07/10/2026:** workflow commitado em `feature/enable-remote-winrm`; pendente o merge na `main` para ativar o CI.
 
 ### Riscos
-* Nenhum risco de produção no momento — a função é somente leitura e nunca foi executada contra máquina real.
+* Sem CI ativo em `main`, erros podem ser mesclados sem detecção automática até que o workflow seja mesclado na `main`.
 
 ### Bloqueios
-* Nenhum no momento.
+Nenhum bloqueio relevante no momento.
 
 ---
 
 ## 12. Próximos Passos
 
 ### Alta prioridade
-1. Confirmar se `.gitignore` e `.github/workflows/ci.yml` já foram commitados (`git ls-files`).
-2. Implementar `Enable-RemoteWinRM`.
-3. Abrir o primeiro Pull Request (Closes #1).
+1. Mesclar `feature/enable-remote-winrm` na `main` — ativa o workflow de CI e conclui o PR #5.
+2. Confirmar que o Actions passa a rodar no merge e nos próximos PRs.
 
 ### Média prioridade
-1. Rodar os testes na CI (o workflow precisa usar a mesma ExecutionPolicy Bypass se rodar em Windows runner).
+1. Implementar `Enable-RemoteWinRM`.
 
 ### Melhorias futuras
 1. Fase 2 — Azure Automation Runbook/Function via Terraform.
@@ -246,13 +224,8 @@ Install-Module -Name Pester -Force -SkipPublisherCheck
 
 ### Testes
 ```bash
-powershell -NoProfile -ExecutionPolicy Bypass -Command "Invoke-Pester .\tests"
+Invoke-Pester .\tests
 ```
-
-> Sem o `-ExecutionPolicy Bypass`, o Pester falha ao carregar os arquivos não assinados
-> (erro que pode se manifestar de forma confusa, parecendo erro de sintaxe).
-
-Build/publicação: não aplicável ainda.
 
 ---
 
@@ -266,7 +239,8 @@ Nenhuma até o momento.
 
 * Funções públicas em `src/RemoteSupportTools/Public/*.ps1`, uma função por arquivo.
 * Testes Pester em `tests/`, nome do arquivo = `<NomeDaFunção>.Tests.ps1`.
-* Fluxo Git: Issue → branch `feature/*` → implementação → testes → PR referenciando a Issue (`Closes #N`).
+* **Todo arquivo `.ps1`/`.psm1`/`.psd1` deve ser salvo com BOM UTF-8**.
+* Fluxo Git: Issue → branch `feature/*` → implementação → testes → PR referenciando a Issue (`Closes #N`) → **aguardar check de CI verde** → merge → deletar branch.
 * Funções são somente leitura por padrão; qualquer ação que altere estado numa máquina remota exige validação extra e teste em laboratório antes de uso real.
 
 ---
@@ -274,30 +248,28 @@ Nenhuma até o momento.
 ## 16. Último Handoff
 
 ### Data
-01/10/2026
+07/10/2026
 
 ### Resumo
-Sessão de diagnóstico do bloqueio reportado no handoff anterior. O arquivo `Test-WinRMStatus.ps1` estava íntegro; a causa real do erro era a ExecutionPolicy do PowerShell. Testes executados com bypass: **6/6 passando**.
+Review do PR #5 aplicada (commit 3af3eab: retry de 5x/5s na confirmação do WinRM, campo `CheckedAt`, teste extra cobrindo exception na 2ª chamada do `Test-WSMan`). Commitados `.gitignore` e `.github/workflows/ci.yml` na branch `feature/enable-remote-winrm` (commit c734d74). CI só passa a rodar em PRs após o merge na `main`.
 
 ### O que foi concluído
-* Confirmada a integridade do arquivo `Test-WinRMStatus.ps1` (4072 caracteres, final correto).
-* Identificada a causa real do bloqueio: ExecutionPolicy bloqueando arquivos não assinados.
-* Validação local concluída: 6/6 testes Pester passando.
+* Revisão do PR #5 aplicada: loop de retry (até 5 tentativas, 5s) no `Test-WSMan` pós-habilitação, renomeação `EnabledAt`→`CheckedAt` nos resultados offline/erro, teste Pester dedicado para falha na verificação após enable.
+* `.gitignore` (PowerShell + `.maestri/` + `.playwright-mcp/`) e `.github/workflows/ci.yml` (Pester em windows-latest) commitados na branch do PR.
+* Suíte Pester completa: 14/14 passando.
 
 ### O que ficou pendente
-* Confirmar `.gitignore` e `.github/workflows/ci.yml` commitados.
-* Implementar `Enable-RemoteWinRM`.
-* Abrir o Pull Request (Closes #1).
+* PR #5 ainda não mesclado — após o merge na `main`, o CI passa a validar PRs automaticamente.
 
 ### Validação
-✅ APROVADO — 6/6
+VALIDADO (local) — 14/14 testes Pester passando.
 
 ### Onde continuar
-`src/RemoteSupportTools/Public/` — próxima função: `Enable-RemoteWinRM`
+Mesclar o PR #5 na `main` e confirmar que o GitHub Actions roda; `opencode.jsonc` segue não rastreado por decisão.
 
 ### Próxima ação
-Rodar `git ls-files` para confirmar `.gitignore` e `.github/workflows/ci.yml`, depois implementar `Enable-RemoteWinRM`.
+Revisar/mergear o PR #5 na `main` (com check de CI verde quando o workflow estiver ativo) e validar que o Actions executa.
 
 ### Atenção antes de continuar
-* Nenhuma execução foi feita contra máquina real ainda — função é somente leitura, segura para reexecutar testes à vontade.
-* **Sempre** rodar os testes com `-ExecutionPolicy Bypass` (ver seção 13), senão o Pester falha ao carregar os arquivos.
+* Nunca executar `Enable-RemoteWinRM` contra máquina real sem teste prévio em laboratório.
+* Até o merge na `main`, PRs não têm validação automática — tratar como prioridade.
