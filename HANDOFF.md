@@ -14,9 +14,9 @@
 
 **Objetivo:** Módulo PowerShell para diagnosticar e habilitar acesso remoto (WinRM/PSRemoting) em máquinas Entra ID joined, como alternativa a chamados de AnyDesk que travam no prompt de UAC ou reportam "não conectado" — ambiente sem RMM (Intune/SCCM).
 
-**Status:** Em desenvolvimento — `Enable-RemoteWinRM` implementada e validada localmente (13/13 Pester), PR pendente
+**Status:** Em desenvolvimento — `Enable-RemoteWinRM` implementada e validada localmente (14/14 Pester), PR #5 aberto com review aplicado, CI commitado (ativa após merge na `main`)
 
-**Última atualização:** 06/10/2026
+**Última atualização:** 07/10/2026
 
 ---
 
@@ -26,9 +26,9 @@
 - Issue #1 fechada automaticamente pelo merge (`Closes #1`).
 - `Enable-RemoteWinRM` implementada em branch `feature/enable-remote-winrm` (Issue #4), testes passando 13/13 localmente (7 novos + 6 existentes).
 - Decisão técnica: habilitação remota via `Invoke-CimMethod` em `Win32_Process` (roda `Enable-PSRemoting -Force; Enable-WinRM -Force`), seguida de verificação com `Test-WSMan`. Idempotente: se `Test-WSMan` já responder, retorna `AlreadyEnabled` sem alterar nada.
-- **Pendência identificada:** o PR foi mesclado sem nenhum check de CI aparecer — `.github/workflows/ci.yml` ainda não está commitado no repositório. Os próximos PRs não terão validação automática até isso ser corrigido.
+- **Pendência identificada (resolvida em 07/10/2026):** `.github/workflows/ci.yml` e `.gitignore` foram commitados na branch `feature/enable-remote-winrm` (commit c734d74). CI passa a rodar em PRs somente após essa branch ser mesclada na `main`.
 - Nenhuma execução foi feita contra máquina real — validação apenas com mocks.
-- Próximo passo: commitar `ci.yml`/`.gitignore`; abrir PR da `Enable-RemoteWinRM`.
+- Próximo passo: mesclar PR #5 na `main` para ativar o workflow de CI; após o merge, PRs futuros terão validação automática.
 
 ---
 
@@ -41,14 +41,14 @@ Abrir PR com `Enable-RemoteWinRM` (Issue #4) e, em paralelo, resolver pendência
 Ter o GitHub Actions rodando nos PRs e concluir a habilitação remota de WinRM.
 
 ### Estado
-`Enable-RemoteWinRM` implementada e testada localmente (13/13) — PR pendente. CI ainda sem workflow commitado.
+`Enable-RemoteWinRM` implementada e testada localmente (14/14) — PR #5 aberto com review aplicado. CI commitado na branch; ativa após merge na `main`.
 
 ### Escopo
 `src/RemoteSupportTools/Public/Enable-RemoteWinRM.ps1`, `tests/Enable-RemoteWinRM.Tests.ps1`, `RemoteSupportTools.psd1`, `HANDOFF.md`
 
 ### Arquivos ou áreas principais
-- `.github/workflows/ci.yml` (fornecido anteriormente, não commitado)
-- `.gitignore` (fornecido anteriormente, não commitado)
+- `.github/workflows/ci.yml` (commitada em 07/10/2026)
+- `.gitignore` (commitado em 07/10/2026)
 - `src/RemoteSupportTools/Public/Enable-RemoteWinRM.ps1` (criada em 06/10/2026)
 
 ### Onde continuar
@@ -90,7 +90,7 @@ tests/
 └── Test-WinRMStatus.Tests.ps1
 ```
 
-`.gitignore` e `.github/workflows/ci.yml` **ainda não confirmados no repositório** — ver seção 11.
+`.gitignore` e `.github/workflows/ci.yml` confirmados e commitados no repositório (branch `feature/enable-remote-winrm`, 07/10/2026).
 
 ---
 
@@ -105,7 +105,7 @@ tests/
 * PR da `Enable-RemoteWinRM` (a abrir).
 
 ### Pendentes
-* [ ] Commitar `.gitignore` e `.github/workflows/ci.yml`.
+* [x] Commitar `.gitignore` e `.github/workflows/ci.yml` (feito em 07/10/2026, commit c734d74, na branch `feature/enable-remote-winrm`).
 
 ### Melhorias futuras
 * [ ] Fase 2: empacotar como Azure Automation Runbook/Function via Terraform.
@@ -113,6 +113,15 @@ tests/
 ---
 
 ## 8. Alterações Relevantes Recentes
+
+### 07/10/2026 — CI commitado; review do PR #5 aplicado
+
+**Alteração:**
+Revisão do Revisor aplicada no PR #5 (retry de 5x/5s no `Test-WSMan` pós-habilitação, `EnabledAt`→`CheckedAt`, teste dedicado para falha na verificação após enable). `.gitignore` e `.github/workflows/ci.yml` commitados na branch `feature/enable-remote-winrm`.
+
+**Status:** Concluído localmente — CI ativa somente após merge na `main`.
+
+---
 
 ### 30/09/2026 — PR #1 mesclado
 
@@ -171,17 +180,17 @@ Concluído
 Tests Passed: 14, Failed: 0.
 
 **Limitações:**
-Validado apenas localmente com mocks, nunca contra máquina real. **CI do GitHub Actions não validou o merge** — workflow ainda não commitado.
+Validado apenas localmente com mocks, nunca contra máquina real. CI commitado em 07/10/2026, mas só passa a validar PRs após o merge da `feature/enable-remote-winrm` na `main`.
 
 ---
 
 ## 11. Problemas, Riscos e Bloqueios
 
 ### Problemas conhecidos
-* PR #1 foi mesclado sem nenhum check de CI — `.github/workflows/ci.yml` não está no repositório ainda, então não há validação automática em `main` nem em PRs.
+* PR #1 foi mesclado sem nenhum check de CI — `.github/workflows/ci.yml` não está no repositório ainda, então não há validação automática em `main` nem em PRs. **Resolvido em 07/10/2026:** workflow commitado em `feature/enable-remote-winrm`; pendente o merge na `main` para ativar o CI.
 
 ### Riscos
-* Sem CI ativo, erros podem ser mesclados sem detecção automática até que o workflow seja commitado.
+* Sem CI ativo em `main`, erros podem ser mesclados sem detecção automática até que o workflow seja mesclado na `main`.
 
 ### Bloqueios
 Nenhum bloqueio relevante no momento.
@@ -191,8 +200,8 @@ Nenhum bloqueio relevante no momento.
 ## 12. Próximos Passos
 
 ### Alta prioridade
-1. Commitar `.gitignore` e `.github/workflows/ci.yml` (conteúdo já fornecido anteriormente, só falta subir).
-2. Confirmar que o Actions passa a rodar num próximo PR de teste.
+1. Mesclar `feature/enable-remote-winrm` na `main` — ativa o workflow de CI e conclui o PR #5.
+2. Confirmar que o Actions passa a rodar no merge e nos próximos PRs.
 
 ### Média prioridade
 1. Implementar `Enable-RemoteWinRM`.
@@ -239,31 +248,28 @@ Nenhuma até o momento.
 ## 16. Último Handoff
 
 ### Data
-06/10/2026
+07/10/2026
 
 ### Resumo
-`Enable-RemoteWinRM` implementada na branch `feature/enable-remote-winrm` (Issue #4), com testes Pester espelhando o padrão de `Test-WinRMStatus`. Validação local: 13/13 passando. PR a ser aberto com `Closes #4`.
+Review do PR #5 aplicada (commit 3af3eab: retry de 5x/5s na confirmação do WinRM, campo `CheckedAt`, teste extra cobrindo exception na 2ª chamada do `Test-WSMan`). Commitados `.gitignore` e `.github/workflows/ci.yml` na branch `feature/enable-remote-winrm` (commit c734d74). CI só passa a rodar em PRs após o merge na `main`.
 
 ### O que foi concluído
-* `Public/Enable-RemoteWinRM.ps1` criada — validação de entrada, `Test-Connection` → checagem de WinRM → habilitação via `Invoke-CimMethod` em `Win32_Process` → confirmação com `Test-WSMan`. Idempotente (`AlreadyEnabled`), saída PSCustomObject com Status/Detail.
-* `tests/Enable-RemoteWinRM.Tests.ps1` com 8 testes (offline, já habilitado, sucesso, verificação falha após habilitar, falha na habilitação, pipeline, validação).
-* Após review do Revisor: retry de 5x/5s na confirmação do WinRM, campo renomeado para `CheckedAt` (consistência com Test-WinRMStatus).
-* `Enable-RemoteWinRM` registrada em `FunctionsToExport` no `.psd1`.
-* Todos os arquivos `.ps1`/`.psm1`/`.psd1` mantidos com BOM UTF-8.
+* Revisão do PR #5 aplicada: loop de retry (até 5 tentativas, 5s) no `Test-WSMan` pós-habilitação, renomeação `EnabledAt`→`CheckedAt` nos resultados offline/erro, teste Pester dedicado para falha na verificação após enable.
+* `.gitignore` (PowerShell + `.maestri/` + `.playwright-mcp/`) e `.github/workflows/ci.yml` (Pester em windows-latest) commitados na branch do PR.
+* Suíte Pester completa: 14/14 passando.
 
 ### O que ficou pendente
-* `.gitignore` e `ci.yml` ainda não commitados.
-* PR da `Enable-RemoteWinRM` ainda não aberto.
+* PR #5 ainda não mesclado — após o merge na `main`, o CI passa a validar PRs automaticamente.
 
 ### Validação
-VALIDADO (local, sem CI) — 13/13 testes Pester passando.
+VALIDADO (local) — 14/14 testes Pester passando.
 
 ### Onde continuar
-Abrir PR da branch `feature/enable-remote-winrm` (`Closes #4`) e commitar `.gitignore`/`ci.yml`.
+Mesclar o PR #5 na `main` e confirmar que o GitHub Actions roda; `opencode.jsonc` segue não rastreado por decisão.
 
 ### Próxima ação
-`git push -u origin feature/enable-remote-winrm` e abrir PR; resolver pendência do workflow de CI.
+Revisar/mergear o PR #5 na `main` (com check de CI verde quando o workflow estiver ativo) e validar que o Actions executa.
 
 ### Atenção antes de continuar
 * Nunca executar `Enable-RemoteWinRM` contra máquina real sem teste prévio em laboratório.
-* Sem CI ativo, PRs futuros não têm validação automática — tratar como prioridade.
+* Até o merge na `main`, PRs não têm validação automática — tratar como prioridade.
