@@ -16,7 +16,7 @@
 
 **Status:** Em desenvolvimento — `Enable-RemoteWinRM` implementada e validada localmente (14/14 Pester), PR #5 aberto com review aplicado, CI commitado (ativa após merge na `main`)
 
-**Última atualização:** 07/10/2026
+**Última atualização:** 08/10/2026
 
 ---
 
@@ -114,6 +114,24 @@ tests/
 
 ## 8. Alterações Relevantes Recentes
 
+### 08/10/2026 — Fase 2 (Issue #6): scaffold Terraform + runbook (ETAPA 1)
+
+**Alteração:**
+Scaffold da Fase 2 na branch `feature/azure-automation`, sem dependência de Azure login:
+- `infra/` — módulo Terraform com `versions.tf` (provider `azurerm ~> 4.0`), `variables.tf` (`location` default `brazilsouth`, `prefix`, `tags` com `env=homologacao`, `enable_budget_alert` default `false`, `budget_alert_email`), `main.tf` (Resource Group + Automation Account SKU Basic + System-assigned Managed Identity + Runbook PowerShell), `outputs.tf`, e budget alert de US$ 10 comentado como exigindo permissões de subscription.
+- `runbooks/Invoke-RemoteSupportRunbook.ps1` — BOM UTF-8, importa `RemoteSupportTools` de `src/`, parâmetros `ComputerName` e `Acao` (`Test`/`Enable`), chama a função correspondente e emite o objeto de resultado (sem interatividade, contexto serverless).
+- `tests/Invoke-RemoteSupportRunbook.Tests.ps1` — Pester mínimo: arquivo existe, parseia sem erro, parâmetros corretos.
+- `.gitignore` — adiciona entradas de Terraform (`.terraform/`, `*.tfstate`, `*.tfvars`).
+
+**Validação:**
+- `terraform fmt -recursive` — sem alterações pendentes.
+- `terraform init -backend=false` + `terraform validate` — **Success! The configuration is valid.**
+- `Invoke-Pester .\tests` — **19/19 passando** (14 existentes + 5 novos).
+
+**Status:** Concluído localmente. `terraform plan/apply` pendente de `az login` do usuário.
+
+---
+
 ### 07/10/2026 — CI commitado; review do PR #5 aplicado
 
 **Alteração:**
@@ -202,6 +220,7 @@ Nenhum bloqueio relevante no momento.
 ### Alta prioridade
 1. Mesclar `feature/enable-remote-winrm` na `main` — ativa o workflow de CI e conclui o PR #5.
 2. Confirmar que o Actions passa a rodar no merge e nos próximos PRs.
+3. **Issue #6 / Fase 2:** usuário executar `az login` (conta homologacao) + `terraform init` + `terraform plan` em `infra/`, depois `apply`, e ao fim da homologação `terraform destroy`.
 
 ### Média prioridade
 1. Implementar `Enable-RemoteWinRM`.
