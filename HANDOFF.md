@@ -14,7 +14,7 @@
 
 **Objetivo:** Módulo PowerShell para diagnosticar e habilitar acesso remoto (WinRM/PSRemoting) em máquinas Entra ID joined, como alternativa a chamados de AnyDesk que travam no prompt de UAC ou reportam "não conectado" — ambiente sem RMM (Intune/SCCM).
 
-**Status:** Fase 1 concluída (PR #5 mesclado em `main`, CI ativa, Pester 19/19). Fase 2 (Azure Automation via Terraform) em andamento na branch `feature/azure-automation` — scaffold (ETAPA 1) concluído, pendente `az login` + `terraform plan/apply`.
+**Status:** Fase 1 concluída (PR #5 mesclado em `main`, CI ativa, Pester 21/21). Fase 2 (Azure Automation via Terraform) em andamento na branch `feature/azure-automation` — scaffold (ETAPA 1) concluído, pendente `az login` + `terraform plan/apply`.
 
 **Última atualização:** 08/10/2026
 
@@ -126,7 +126,7 @@ Scaffold da Fase 2 na branch `feature/azure-automation`, sem dependência de Azu
 **Validação:**
 - `terraform fmt -recursive` — sem alterações pendentes.
 - `terraform init -backend=false` + `terraform validate` — **Success! The configuration is valid.**
-- `Invoke-Pester .\tests` — **19/19 passando** (14 existentes + 5 novos).
+- `Invoke-Pester .\tests` — **21/21 passando** (14 existentes + 7 novos).
 
 **Status:** Concluído localmente. `terraform plan/apply` pendente de `az login` do usuário.
 
