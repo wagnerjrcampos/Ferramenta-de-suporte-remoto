@@ -14,7 +14,7 @@
 
 **Objetivo:** Módulo PowerShell para diagnosticar e habilitar acesso remoto (WinRM/PSRemoting) em máquinas Entra ID joined, como alternativa a chamados de AnyDesk que travam no prompt de UAC ou reportam "não conectado" — ambiente sem RMM (Intune/SCCM).
 
-**Status:** Em desenvolvimento — `Enable-RemoteWinRM` implementada e validada localmente (14/14 Pester), PR #5 aberto com review aplicado, CI commitado (ativa após merge na `main`)
+**Status:** Fase 1 concluída (PR #5 mesclado em `main`, CI ativa, Pester 19/19). Fase 2 (Azure Automation via Terraform) em andamento na branch `feature/azure-automation` — scaffold (ETAPA 1) concluído, pendente `az login` + `terraform plan/apply`.
 
 **Última atualização:** 08/10/2026
 
@@ -41,7 +41,7 @@ Abrir PR com `Enable-RemoteWinRM` (Issue #4) e, em paralelo, resolver pendência
 Ter o GitHub Actions rodando nos PRs e concluir a habilitação remota de WinRM.
 
 ### Estado
-`Enable-RemoteWinRM` implementada e testada localmente (14/14) — PR #5 aberto com review aplicado. CI commitado na branch; ativa após merge na `main`.
+`Enable-RemoteWinRM` implementada, testada (14/14) e mesclada em `main` via PR #5 (commit 0ffcf73). CI ativa após o merge; branch `feature/enable-remote-winrm` deletada. Agora na Fase 2 — scaffold Terraform + runbook concluído (ETAPA 1), pendente `az login` do usuário.
 
 ### Escopo
 `src/RemoteSupportTools/Public/Enable-RemoteWinRM.ps1`, `tests/Enable-RemoteWinRM.Tests.ps1`, `RemoteSupportTools.psd1`, `HANDOFF.md`
@@ -218,12 +218,12 @@ Nenhum bloqueio relevante no momento.
 ## 12. Próximos Passos
 
 ### Alta prioridade
-1. Mesclar `feature/enable-remote-winrm` na `main` — ativa o workflow de CI e conclui o PR #5.
+1. ~~Mesclar `feature/enable-remote-winrm` na `main`~~ — **concluído em 08/10/2026: PR #5 mesclado (0ffcf73), CI ativa, branch deletada.**
 2. Confirmar que o Actions passa a rodar no merge e nos próximos PRs.
 3. **Issue #6 / Fase 2:** usuário executar `az login` (conta homologacao) + `terraform init` + `terraform plan` em `infra/`, depois `apply`, e ao fim da homologação `terraform destroy`.
 
 ### Média prioridade
-1. Implementar `Enable-RemoteWinRM`.
+1. ~~Implementar `Enable-RemoteWinRM`~~ — **concluído: mesclada em `main` via PR #5 (0ffcf73).**
 
 ### Melhorias futuras
 1. Fase 2 — Azure Automation Runbook/Function via Terraform.

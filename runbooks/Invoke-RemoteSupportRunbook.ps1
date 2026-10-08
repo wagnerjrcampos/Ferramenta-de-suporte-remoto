@@ -18,14 +18,20 @@
 #>
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory)]
-    [ValidateNotNullOrEmpty()]
-    [string]$ComputerName,
+    # Sem Mandatory: contexto serverless (Azure Automation) nao pode exibir prompt interativo.
+    # Fallback: variavel de ambiente RUNBOOK_COMPUTERNAME; se ausente, falha rapido com erro claro.
+    [Parameter()]
+    [string]$ComputerName = $env:RUNBOOK_COMPUTERNAME,
 
-    [Parameter(Mandatory)]
+    # Sem Mandatory: default seguro 'Test' (somente leitura) para nunca pedir input.
+    [Parameter()]
     [ValidateSet('Test', 'Enable')]
-    [string]$Acao
+    [string]$Acao = 'Test'
 )
+
+if ([string]::IsNullOrWhiteSpace($ComputerName)) {
+    throw "ComputerName nao informado. Passe -ComputerName ou defina a variavel de ambiente RUNBOOK_COMPUTERNAME."
+}
 
 $ModulePath = Join-Path $PSScriptRoot '..\src\RemoteSupportTools\RemoteSupportTools.psd1'
 Import-Module $ModulePath -Force

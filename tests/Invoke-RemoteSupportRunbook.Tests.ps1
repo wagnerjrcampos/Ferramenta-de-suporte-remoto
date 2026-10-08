@@ -21,14 +21,16 @@ Describe 'Invoke-RemoteSupportRunbook' {
             $Cmd = Get-Command $ScriptPath
         }
 
-        It 'Expõe o parâmetro ComputerName' {
+        It 'ComputerName existe e NAO é Mandatory (sem prompt interativo)' {
             $Cmd.Parameters.ContainsKey('ComputerName') | Should -BeTrue
-            $Cmd.Parameters['ComputerName'].Attributes.Mandatory | Should -Contain $true
+            $ParamAttr = $Cmd.Parameters['ComputerName'].Attributes | Where-Object { $_ -is [System.Management.Automation.ParameterAttribute] }
+            $ParamAttr.Mandatory | Should -BeFalse
         }
 
-        It 'Expõe o parâmetro Acao' {
+        It 'Acao existe e NAO é Mandatory (sem prompt interativo)' {
             $Cmd.Parameters.ContainsKey('Acao') | Should -BeTrue
-            $Cmd.Parameters['Acao'].Attributes.Mandatory | Should -Contain $true
+            $ParamAttr = $Cmd.Parameters['Acao'].Attributes | Where-Object { $_ -is [System.Management.Automation.ParameterAttribute] }
+            $ParamAttr.Mandatory | Should -BeFalse
         }
 
         It "Acao aceita apenas 'Test' e 'Enable'" {
@@ -37,6 +39,20 @@ Describe 'Invoke-RemoteSupportRunbook' {
             $ValidateSet.ValidValues | Should -Contain 'Test'
             $ValidateSet.ValidValues | Should -Contain 'Enable'
             $ValidateSet.ValidValues.Count | Should -Be 2
+        }
+
+        It "Acao tem default 'Test'" {
+            $errors = $null; $tokens = $null
+            $ast = [System.Management.Automation.Language.Parser]::ParseFile($ScriptPath, [ref]$tokens, [ref]$errors)
+            $AcaoParam = $ast.ParamBlock.Parameters | Where-Object { $_.Name.VariablePath.UserPath -eq 'Acao' }
+            $AcaoParam.DefaultValue.SafeGetValue() | Should -Be 'Test'
+        }
+
+        It 'ComputerName tem fallback via variavel de ambiente' {
+            $errors = $null; $tokens = $null
+            $ast = [System.Management.Automation.Language.Parser]::ParseFile($ScriptPath, [ref]$tokens, [ref]$errors)
+            $CnParam = $ast.ParamBlock.Parameters | Where-Object { $_.Name.VariablePath.UserPath -eq 'ComputerName' }
+            $CnParam.DefaultValue.Extent.Text | Should -Match '\$env:'
         }
     }
 }
