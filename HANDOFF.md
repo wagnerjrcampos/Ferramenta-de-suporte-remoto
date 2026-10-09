@@ -292,3 +292,21 @@ Revisar/mergear o PR #5 na `main` (com check de CI verde quando o workflow estiv
 ### Atenção antes de continuar
 * Nunca executar `Enable-RemoteWinRM` contra máquina real sem teste prévio em laboratório.
 * Até o merge na `main`, PRs não têm validação automática — tratar como prioridade.
+
+
+---
+
+## 13. VM de lab pronta (09/10/2026)
+
+### Estado
+VM `Lab-Win11` (VirtualBox 7.2.20, Windows 11 Enterprise Evaluation 10.0.26300.9457, 4 GB RAM, 4 CPU, EFI+TPM 2.0) com instalacao limpa concluida via `VBoxManage unattended install`. Tentativa de 08/10 falhou (interrupcao no meio do specialize gerou loop no dialogo 'restarted unexpectedly'); disco recriado e instalacao refeita em 09/10 com sucesso.
+
+### Baseline validado via `guestcontrol`
+- Hostname: `LAB-WIN11` | IP NAT: `10.0.2.15` | Usuario: `labadmin`
+- Guest Additions 7.2.20 (runlevel 3); `guestcontrol` funcional apos um `reset` (VBoxService havia travado no primeiro boot)
+- WinRM: `Stopped` / `Manual` — estado 'antes' ideal para homologar `Enable-RemoteWinRM`
+- Rede: perfil `Public` (o modulo precisa tratar esse perfil)
+- Relogio do guest ~4h atrasado (host sobrecarregado; irrelevante para WinRM workgroup)
+
+### Onde continuar
+Usar a VM como alvo dos testes da Fase 2 (copiar modulo via Guest Additions shared folder ou Hybrid Runbook Worker). NAO habilitar WinRM nela manualmente — o valor do lab esta no estado 'desligado'.
