@@ -14,9 +14,9 @@
 
 **Objetivo:** Módulo PowerShell para diagnosticar e habilitar acesso remoto (WinRM/PSRemoting) em máquinas Entra ID joined, como alternativa a chamados de AnyDesk que travam no prompt de UAC ou reportam "não conectado" — ambiente sem RMM (Intune/SCCM).
 
-**Status:** Em desenvolvimento — `Enable-RemoteWinRM` implementada e validada localmente (14/14 Pester), PR #5 aberto com review aplicado, CI commitado (ativa após merge na `main`)
+**Status:** Fase 1 concluída (PR #5 mesclado em `main`, CI ativa, Pester 21/21). Fase 2 (Azure Automation via Terraform) em andamento na branch `feature/azure-automation` — scaffold (ETAPA 1) concluído, pendente `az login` + `terraform plan/apply`.
 
-**Última atualização:** 07/10/2026
+**Última atualização:** 08/10/2026
 
 ---
 
@@ -41,7 +41,7 @@ Abrir PR com `Enable-RemoteWinRM` (Issue #4) e, em paralelo, resolver pendência
 Ter o GitHub Actions rodando nos PRs e concluir a habilitação remota de WinRM.
 
 ### Estado
-`Enable-RemoteWinRM` implementada e testada localmente (14/14) — PR #5 aberto com review aplicado. CI commitado na branch; ativa após merge na `main`.
+`Enable-RemoteWinRM` implementada, testada (14/14) e mesclada em `main` via PR #5 (commit 0ffcf73). CI ativa após o merge; branch `feature/enable-remote-winrm` deletada. Agora na Fase 2 — scaffold Terraform + runbook concluído (ETAPA 1), pendente `az login` do usuário.
 
 ### Escopo
 `src/RemoteSupportTools/Public/Enable-RemoteWinRM.ps1`, `tests/Enable-RemoteWinRM.Tests.ps1`, `RemoteSupportTools.psd1`, `HANDOFF.md`
@@ -113,6 +113,24 @@ tests/
 ---
 
 ## 8. Alterações Relevantes Recentes
+
+### 08/10/2026 — Fase 2 (Issue #6): scaffold Terraform + runbook (ETAPA 1)
+
+**Alteração:**
+Scaffold da Fase 2 na branch `feature/azure-automation`, sem dependência de Azure login:
+- `infra/` — módulo Terraform com `versions.tf` (provider `azurerm ~> 4.0`), `variables.tf` (`location` default `brazilsouth`, `prefix`, `tags` com `env=homologacao`, `enable_budget_alert` default `false`, `budget_alert_email`), `main.tf` (Resource Group + Automation Account SKU Basic + System-assigned Managed Identity + Runbook PowerShell), `outputs.tf`, e budget alert de US$ 10 comentado como exigindo permissões de subscription.
+- `runbooks/Invoke-RemoteSupportRunbook.ps1` — BOM UTF-8, importa `RemoteSupportTools` de `src/`, parâmetros `ComputerName` e `Acao` (`Test`/`Enable`), chama a função correspondente e emite o objeto de resultado (sem interatividade, contexto serverless).
+- `tests/Invoke-RemoteSupportRunbook.Tests.ps1` — Pester mínimo: arquivo existe, parseia sem erro, parâmetros corretos.
+- `.gitignore` — adiciona entradas de Terraform (`.terraform/`, `*.tfstate`, `*.tfvars`).
+
+**Validação:**
+- `terraform fmt -recursive` — sem alterações pendentes.
+- `terraform init -backend=false` + `terraform validate` — **Success! The configuration is valid.**
+- `Invoke-Pester .\tests` — **21/21 passando** (14 existentes + 7 novos).
+
+**Status:** Concluído localmente. `terraform plan/apply` pendente de `az login` do usuário.
+
+---
 
 ### 07/10/2026 — CI commitado; review do PR #5 aplicado
 
@@ -200,11 +218,12 @@ Nenhum bloqueio relevante no momento.
 ## 12. Próximos Passos
 
 ### Alta prioridade
-1. Mesclar `feature/enable-remote-winrm` na `main` — ativa o workflow de CI e conclui o PR #5.
+1. ~~Mesclar `feature/enable-remote-winrm` na `main`~~ — **concluído em 08/10/2026: PR #5 mesclado (0ffcf73), CI ativa, branch deletada.**
 2. Confirmar que o Actions passa a rodar no merge e nos próximos PRs.
+3. **Issue #6 / Fase 2:** usuário executar `az login` (conta homologacao) + `terraform init` + `terraform plan` em `infra/`, depois `apply`, e ao fim da homologação `terraform destroy`.
 
 ### Média prioridade
-1. Implementar `Enable-RemoteWinRM`.
+1. ~~Implementar `Enable-RemoteWinRM`~~ — **concluído: mesclada em `main` via PR #5 (0ffcf73).**
 
 ### Melhorias futuras
 1. Fase 2 — Azure Automation Runbook/Function via Terraform.
@@ -273,3 +292,21 @@ Revisar/mergear o PR #5 na `main` (com check de CI verde quando o workflow estiv
 ### Atenção antes de continuar
 * Nunca executar `Enable-RemoteWinRM` contra máquina real sem teste prévio em laboratório.
 * Até o merge na `main`, PRs não têm validação automática — tratar como prioridade.
+
+
+---
+
+## 13. VM de lab pronta (09/10/2026)
+
+### Estado
+VM `Lab-Win11` (VirtualBox 7.2.20, Windows 11 Enterprise Evaluation 10.0.26300.9457, 4 GB RAM, 4 CPU, EFI+TPM 2.0) com instalacao limpa concluida via `VBoxManage unattended install`. Tentativa de 08/10 falhou (interrupcao no meio do specialize gerou loop no dialogo 'restarted unexpectedly'); disco recriado e instalacao refeita em 09/10 com sucesso.
+
+### Baseline validado via `guestcontrol`
+- Hostname: `LAB-WIN11` | IP NAT: `10.0.2.15` | Usuario: `labadmin`
+- Guest Additions 7.2.20 (runlevel 3); `guestcontrol` funcional apos um `reset` (VBoxService havia travado no primeiro boot)
+- WinRM: `Stopped` / `Manual` — estado 'antes' ideal para homologar `Enable-RemoteWinRM`
+- Rede: perfil `Public` (o modulo precisa tratar esse perfil)
+- Relogio do guest ~4h atrasado (host sobrecarregado; irrelevante para WinRM workgroup)
+
+### Onde continuar
+Usar a VM como alvo dos testes da Fase 2 (copiar modulo via Guest Additions shared folder ou Hybrid Runbook Worker). NAO habilitar WinRM nela manualmente — o valor do lab esta no estado 'desligado'.
